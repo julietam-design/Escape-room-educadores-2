@@ -254,7 +254,7 @@
     <button class="btn small ghost" id="muteBtn" onclick="toggleMute()" style="padding:6px 10px; font-size:15px; background:var(--navy);" title="Silenciar sonido">🔊</button>
     <div class="code-strip" id="codeStrip"></div>
     <div class="dots" id="dots"></div>
-    <div class="timer" id="timer">30:00<span class="penalty-pop" id="penaltyPop">−0:15</span></div>
+    <div class="timer" id="timer">30:00<span class="penalty-pop" id="penaltyPop"></span></div>
   </div>
 </header>
 
@@ -301,7 +301,7 @@ let ROLE = null;         // se define cuando la persona elige su salón (ya no d
 let OTHER = null;
 const TIME_LIMIT = 30*60;      // segundos totales
 const PENALTY = 60;            // segundos que se restan por respuesta incorrecta
-const HINT_COST = 10;          // segundos que cuesta pedir la pista extra (nivel 2)
+const HINT_COST = 60;          // segundos que cuesta pedir la pista extra (nivel 2)
 
 const stages = [
   { key:'intro' },
@@ -447,7 +447,6 @@ function onRoomUpdate(snap){
   ensureTimer();
   renderTopBar();
   checkPenaltyBroadcast();
-  checkLockBroadcast();
   const target = remoteState.missionStarted ? remoteState.current : 0;
   if(target !== renderedStage){
     const isAdvance = target === renderedStage + 1 && renderedStage >= 1;
@@ -516,7 +515,8 @@ function checkPenaltyBroadcast(){
 function playPenaltyFX(seconds, kind){
   const pop = document.getElementById('penaltyPop');
   if(pop){
-    pop.textContent = '−0:'+String(seconds).padStart(2,'0');
+    const m = Math.floor(seconds/60), s = seconds%60;
+    pop.textContent = '−'+m+':'+String(s).padStart(2,'0');
     pop.classList.remove('show'); void pop.offsetWidth; pop.classList.add('show');
   }
   if(kind === 'hint'){
@@ -614,7 +614,7 @@ function goToStage(i){
     }
     content.innerHTML =
       '<div class="eyebrow">'+stages[i].title+'</div>'
-      + '<h2>Dos edades, dos pistas</h2>'
+      + '<h2>Dos edades, dos datos</h2>'
       + '<p>El portal del tiempo también afectó las edades. Necesitamos de su ayuda para reconstruir la lógica del tiempo etario. Tomaremos a dos coders como nuestro caso.</p>'
       + syncNote() + mine;
   }
@@ -644,21 +644,21 @@ function goToStage(i){
     label.textContent = 'detective.exe';
     let mine = '';
     if(ROLE === 1){
-      mine = roleTag('TENÉS UNA PISTA')
-        + '<div class="clue-card">🔎 Pista: <b>CAMI</b> tiene más puntos que <b>BERTO</b>.</div>'
-        + '<p class="muted">Contale esta pista al EQUIPO 2. Entre los dos tienen que descubrir cuántos puntos tiene ANA.</p>'
+      mine = roleTag('TENÉS UN DATO')
+        + '<div class="clue-card">🔎 Dato: <b>CAMI</b> tiene más puntos que <b>BERTO</b>.</div>'
+        + '<p class="muted">Contale este dato al EQUIPO 2. Entre los dos tienen que descubrir cuántos puntos tiene ANA.</p>'
         + waitingNote('verdad');
     } else {
-      mine = roleTag('TENÉS OTRA PISTA')
-        + '<div class="clue-card">🔎 Pista: <b>ANA</b> tiene menos puntos que <b>BERTO</b>.</div>'
+      mine = roleTag('TENÉS OTRO DATO')
+        + '<div class="clue-card">🔎 Dato: <b>ANA</b> tiene menos puntos que <b>BERTO</b>.</div>'
         + '<p>Los puntajes posibles son: <b>2, 5 y 8</b> (cada persona tiene uno distinto).</p>'
-        + '<p class="muted">Con tu pista y la del EQUIPO 1, ordenen a las 3 personas de mayor a menor puntaje. La respuesta es cuántos puntos tiene ANA.</p>'
+        + '<p class="muted">Con tu dato y el del EQUIPO 1, ordenen a las 3 personas de mayor a menor puntaje. La respuesta es cuántos puntos tiene ANA.</p>'
         + answerBlock(i);
     }
     content.innerHTML =
       '<div class="eyebrow">'+stages[i].title+'</div>'
-      + '<h2>Las pistas están repartidas</h2>'
-      + '<p>En esta época conviven tres coders cuyos registros se mezclaron con el paso del tiempo. Sus pistas quedaron repartidas entre las dos terminales.</p>'
+      + '<h2>Los datos están repartidos</h2>'
+      + '<p>En esta época conviven tres coders cuyos registros se mezclaron con el paso del tiempo. Sus datos quedaron repartidos entre las dos terminales.</p>'
       + syncNote() + mine;
   }
 
@@ -667,13 +667,13 @@ function goToStage(i){
     let mine = '';
     if(ROLE === 2){
       mine = roleTag('TENÉS EL PRIMER DATO')
-        + '<p>Dos personas caminan una hacia la otra por el mismo camino recto, habiendo salido al mismo tiempo desde puntos opuestos. Vos sabés que una de ellas camina a <b>5 km/h</b>.</p>'
+        + '<p>Dos personas caminan una hacia la otra por el mismo camino recto, habiendo salido al mismo tiempo desde puntos opuestos. Una de ellas es <b>Ana</b>, que camina a <b>5 km/h</b>.</p>'
         + '<p class="muted">Decile este dato al EQUIPO 1, que tiene el segundo dato.</p>'
         + waitingNote('mapa');
     } else {
       mine = roleTag('TENÉS EL SEGUNDO DATO')
         + '<p>La otra persona camina a <b>4 km/h</b>, en sentido contrario.</p>'
-        + '<p class="muted">Con las dos velocidades, calculen a qué velocidad se acercan mutuamente (cuánto se reduce la distancia entre ambas por cada hora que pasa).</p>'
+        + '<p class="muted">Calculen a qué velocidad Ana ve acercarse a la otra persona (es decir, desde la perspectiva de Ana: cuánto se reduce la distancia entre ambas por cada hora que pasa).</p>'
         + answerBlock(i);
     }
     content.innerHTML =
@@ -711,11 +711,11 @@ function goToStage(i){
       mine = roleTag('TENÉS LA SECUENCIA')
         + '<p>Encontraron esta secuencia de números en el sistema, pero falta el último:</p>'
         + '<div class="symbol-msg" style="font-size:28px; letter-spacing:0.08em;">30 — 26 — 21 — 15 — ?</div>'
-        + '<p class="muted">Decile esta secuencia al EQUIPO 1, que tiene una pista sobre cómo continúa el patrón.</p>'
+        + '<p class="muted">Decile esta secuencia al EQUIPO 1, que tiene un dato sobre cómo continúa el patrón.</p>'
         + waitingNote('acceso');
     } else {
-      mine = roleTag('TENÉS LA PISTA DEL PATRÓN')
-        + '<div class="clue-card">💡 Pista: fijate cuánto cambia entre cada par de números consecutivos. Esa diferencia también sigue su propio patrón.</div>'
+      mine = roleTag('TENÉS EL DATO DEL PATRÓN')
+        + '<div class="clue-card">💡 Dato: fijate cuánto cambia entre cada par de números consecutivos. Esa diferencia también sigue su propio patrón.</div>'
         + '<p class="muted">Pedile la secuencia al EQUIPO 2, calculen las diferencias entre números consecutivos, encuentren el patrón de esas diferencias, y usen eso para calcular el número que sigue.</p>'
         + answerBlock(i);
     }
@@ -801,7 +801,7 @@ function goToStage(i){
       '<div class="final-lock">'
       + '<div class="eyebrow" style="text-align:center">ÚLTIMO PASO // EL RELOJ</div>'
       + '<h2>Destraben el candado del reloj</h2>'
-      + '<p>Juntaron los 9 fragmentos (mírenlos arriba, en la barra de la terminal). Ingrésenlos en orden, del primero al último. Cualquiera de los dos puede intentarlo: apenas uno lo logre, el reloj se pone en movimiento en las dos pantallas.</p>'
+      + '<p>Juntaron los 9 fragmentos (mírenlos arriba, en la barra de la terminal). Ingrésenlos en orden, del primero al último, en esta terminal.</p>'
       + '<div class="lock-stage" id="lockStage">'
       + '<svg width="130" height="140" viewBox="0 0 130 140" xmlns="http://www.w3.org/2000/svg">'
       + '<path id="shackleClosed" d="M38 62 V40 a27 27 0 0 1 54 0 V62" fill="none" stroke="var(--amarillo)" stroke-width="10" stroke-linecap="round"/>'
@@ -815,11 +815,11 @@ function goToStage(i){
       + '<div class="feedback" id="masterFeedback" style="text-align:center;"></div>'
       + '<div class="final-msg" id="finalMsg">'
       + '<h1 style="margin-top:16px;">¡Destrabaron el candado!<br>El reloj se puso en movimiento.</h1>'
-      + '<p class="muted" style="margin-top:14px;">Esta es la palabra que reconstruyeron en esta época (guárdenla, la van a necesitar más adelante):</p>'
+      + '<p class="muted" style="margin-top:14px;">Esta es la palabra que reconstruyeron en esta época. Diríjanse a la sala de reuniones para ingresar la clave:</p>'
       + '<div class="master-code" id="stampCodeBox" style="font-size:22px; color:var(--naranja);">'+MY_WORD+'</div>'
       + '<p class="muted">Tiempo restante cuando lo lograron: <b id="finalTime" style="color:var(--celeste)"></b></p>'
       + '</div></div>';
-    if(remoteState.lockOpened) checkLockBroadcast();
+    // La revelación de la palabra ahora es individual: no se sincroniza automáticamente con la otra terminal.
   }
 }
 
@@ -834,7 +834,7 @@ function answerBlock(i){
 function hintBlock(i, key){
   return '<button class="hint-toggle" onclick="toggleHint(\'hint1-'+i+'\')">¿Necesitan una pista?</button>'
     + '<div class="hint-text" id="hint1-'+i+'">'+hints[key][1]+'</div>'
-    + '<button class="hint-toggle" id="hint2btn-'+i+'" onclick="requestExtraHint('+i+',\''+key+'\')">¿Necesitan una pista más directa? (−'+HINT_COST+'s)</button>'
+    + '<button class="hint-toggle" id="hint2btn-'+i+'" onclick="requestExtraHint('+i+',\''+key+'\')">¿Necesitan una pista más directa? (−1 min)</button>'
     + '<div class="hint-text" id="hint2-'+i+'">'+hints[key][2]+'</div>';
 }
 const hints = {
@@ -842,8 +842,8 @@ const hints = {
               2:'Sumen las dos ecuaciones término a término: eso cancela la edad menor y les da el doble de la edad mayor. De ahí pueden despejar las dos edades.' },
   reparto:  { 1:'Primero calculen cuánto le toca a cada persona si el total se reparte en partes exactamente iguales entre las 4.',
               2:'Una vez que tengan la parte individual, no se olviden de sumarle el extra que menciona la consigna — ese es el resultado final.' },
-  verdad:   { 1:'Ordenen a las tres personas de mayor a menor combinando las dos pistas juntas, no cada una por separado.',
-              2:'Con las dos pistas combinadas hay un único orden posible entre CAMI, BERTO y ANA. Fíjense cuál de los tres puntajes posibles le queda a la persona que NO es ni la mayor ni la menor del grupo.' },
+  verdad:   { 1:'Ordenen a las tres personas de mayor a menor combinando los dos datos juntos, no cada uno por separado.',
+              2:'Con los dos datos combinados hay un único orden posible entre CAMI, BERTO y ANA. Fíjense cuál de los tres puntajes posibles le queda a la persona que NO es ni la mayor ni la menor del grupo.' },
   mapa:     { 1:'Cuando dos personas caminan una hacia la otra, la distancia entre ambas se reduce a una velocidad combinada.',
               2:'Esa velocidad combinada es una operación simple entre las dos velocidades que cada equipo tiene por separado — no hace falta ninguna fórmula complicada.' },
   anagrama: { 1:'Primero sumen la hora actual más las horas que van a pasar, sin preocuparse todavía por las vueltas del reloj.',
@@ -892,35 +892,35 @@ function checkMaster(){
   const val = normalize(document.getElementById('masterInput').value);
   const fb = document.getElementById('masterFeedback');
   if(val === MASTER_CODE){
-    fb.className='feedback ok'; fb.textContent='✔ Clave maestra aceptada. Sincronizando…';
+    fb.className='feedback ok'; fb.textContent='✔ Clave maestra aceptada.';
     db.ref('rooms_educadores/'+roomId).transaction(cur=>{
       cur = cur || {};
       if(!cur.lockOpened){ cur.lockOpened = true; }
       return cur;
     });
+    revealSuccess();
   } else {
     fb.className='feedback err shake'; fb.textContent='✖ Esa no es la clave maestra (−1 min). Revisen los fragmentos en la barra de arriba.';
     submitPenalty();
     setTimeout(()=> fb.classList.remove('shake'), 400);
   }
 }
-function checkLockBroadcast(){
-  if(remoteState.lockOpened && !lockOpened){
-    lockOpened = true;
-    const stage = document.getElementById('lockStage');
-    if(stage) stage.classList.add('lock-open');
-    sfxUnlock();
-    triggerConfetti();
-    document.body.classList.remove('corrupt-active');
-    document.documentElement.style.setProperty('--corruption', 0);
-    setTimeout(()=>{
-      const fm = document.getElementById('finalMsg');
-      if(fm){
-        fm.classList.add('show');
-        document.getElementById('finalTime').textContent = document.getElementById('timer').firstChild.textContent;
-      }
-    }, 1300);
-  }
+function revealSuccess(){
+  if(lockOpened) return;
+  lockOpened = true;
+  const stage = document.getElementById('lockStage');
+  if(stage) stage.classList.add('lock-open');
+  sfxUnlock();
+  triggerConfetti();
+  document.body.classList.remove('corrupt-active');
+  document.documentElement.style.setProperty('--corruption', 0);
+  setTimeout(()=>{
+    const fm = document.getElementById('finalMsg');
+    if(fm){
+      fm.classList.add('show');
+      document.getElementById('finalTime').textContent = document.getElementById('timer').firstChild.textContent;
+    }
+  }, 1300);
 }
 
 /* ============ CONFETI ============ */
